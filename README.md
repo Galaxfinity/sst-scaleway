@@ -1,7 +1,6 @@
 # sst-scaleway
 
 [![Build](https://img.shields.io/github/actions/workflow/status/Galaxfinity/sst-scaleway/ci.yml?branch=main&label=build)](https://github.com/Galaxfinity/sst-scaleway/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/actions/workflow/status/Galaxfinity/sst-scaleway/release.yml?label=release)](https://github.com/Galaxfinity/sst-scaleway/actions/workflows/release.yml)
 [![npm version](https://img.shields.io/npm/v/%40galaxfinity%2Fsst-scaleway?label=npm)](https://www.npmjs.com/package/@galaxfinity/sst-scaleway)
 [![npm downloads](https://img.shields.io/npm/dm/%40galaxfinity%2Fsst-scaleway)](https://www.npmjs.com/package/@galaxfinity/sst-scaleway)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

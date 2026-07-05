@@ -2,7 +2,7 @@ import { Input, Output, all, output } from "@pulumi/pulumi";
 
 /**
  * The shape SST's linking machinery expects from `getSSTLink()`.
- * See platform/src/components/link.ts in the SST repo — linkability is
+ * See platform/src/components/link.ts in the SST repo - linkability is
  * duck-typed via `"getSSTLink" in obj`, which is why this package needs no
  * import from SST itself.
  */
@@ -31,7 +31,7 @@ function normalizeType(type: string) {
 
 /**
  * Build the `SST_RESOURCE_*` environment variables for a list of linked
- * resources — the same wire format SST's own components inject, so the
+ * resources - the same wire format SST's own components inject, so the
  * `Resource` object from the `sst` SDK works unchanged at runtime.
  */
 export function linkEnvironment(
@@ -73,7 +73,7 @@ export function linkEnvironment(
 }
 
 /**
- * Collect `include` entries of a given type from linked resources —
+ * Collect `include` entries of a given type from linked resources -
  * mirrors SST's `Link.getInclude`. Used by Function to gather
  * `scaleway.permission` entries and provision IAM credentials.
  */

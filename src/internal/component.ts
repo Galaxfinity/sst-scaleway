@@ -36,7 +36,7 @@ export function transform<T extends object>(
 /**
  * Base class for all sst-scaleway components.
  *
- * Deliberately NOT SST's own Component class — the published `sst` package
+ * Deliberately NOT SST's own Component class - the published `sst` package
  * does not ship the component platform, and SST's linking machinery is
  * duck-typed (`"getSSTLink" in obj`), so extending a plain Pulumi
  * ComponentResource is the supported integration surface.

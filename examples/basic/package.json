@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "sst": "4.17.0",
-    "@galaxfinity/sst-scaleway": "link:../.."
+    "@aws-sdk/client-sqs": "^3.632.0",
+    "@galaxfinity/sst-scaleway": "link:../..",
+    "postgres": "^3.4.4",
+    "sst": "4.17.0"
   }
 }

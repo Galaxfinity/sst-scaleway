@@ -2,7 +2,7 @@
  * Ambient declarations for the values SST's CLI injects when it bundles
  * sst.config.ts and everything it imports (including this package).
  *
- * `$app`, `$cli` and `$dev` are esbuild `define`s — the identifiers below are
+ * `$app`, `$cli` and `$dev` are esbuild `define`s - the identifiers below are
  * replaced with literals at bundle time. This only works because this package
  * is published as plain, unminified ESM; do not add a minifier to the build.
  */

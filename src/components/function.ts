@@ -198,7 +198,7 @@ export class Function extends Component {
             archive.finalize();
           });
 
-          // Hash the bundle (not the zip — zip bytes vary with timestamps) so
+          // Hash the bundle (not the zip - zip bytes vary with timestamps) so
           // the function only redeploys when the code actually changes.
           const hash = crypto
             .createHash("sha256")
@@ -212,7 +212,7 @@ export class Function extends Component {
 
     /**
      * Provision IAM credentials for the `scaleway.permission` includes of the
-     * linked resources — same pattern as SST's cloudflare.Worker consuming
+     * linked resources - same pattern as SST's cloudflare.Worker consuming
      * `aws.permission` includes.
      */
     function createCredentials() {
@@ -233,7 +233,7 @@ export class Function extends Component {
               name: physicalName(64, `${name}Application`),
               organizationId,
             },
-            { parent },
+            { parent, ignoreChanges: ["name"] },
           );
 
           new scwSdk.iam.Policy(
@@ -251,7 +251,7 @@ export class Function extends Component {
                 organizationId: p.organizationId as unknown as string,
               })),
             },
-            { parent },
+            { parent, ignoreChanges: ["name"] },
           );
 
           return new scwSdk.iam.ApiKey(
@@ -262,7 +262,7 @@ export class Function extends Component {
               // Org security settings can require an expiration (max 1 year).
               // Pin it at creation and ignore drift so the key isn't rotated
               // on every deploy. Rotation before expiry is on the user for
-              // now — recreate via `sst deploy` after tainting, or delete the
+              // now - recreate via `sst deploy` after tainting, or delete the
               // key in the console and redeploy.
               expiresAt: new Date(
                 Date.now() + 364 * 24 * 60 * 60 * 1000,
@@ -306,21 +306,27 @@ export class Function extends Component {
             minScale: args.minScale ?? 0,
             maxScale: args.maxScale ?? 20,
             deploy: true,
-            environmentVariables: all([
-              args.environment,
+            environmentVariables: output(args.environment).apply(
+              (environment) => ({ ...environment }),
+            ),
+            // Link payloads can carry secrets (queue credentials, connection
+            // info), so they go into secret env vars. The SCW_* prefix is
+            // reserved by Scaleway, hence SST_SCALEWAY_*. The application ID
+            // is injected because Serverless SQL Databases authenticate with
+            // it as the username (secret key as password).
+            secretEnvironmentVariables: all([
               linkEnvironment(args.link),
-            ]).apply(([environment, linkEnv]) => ({
+              credentials,
+            ]).apply(([linkEnv, key]) => ({
               ...linkEnv,
-              ...environment,
-            })),
-            secretEnvironmentVariables: credentials.apply((key) =>
-              key
+              ...(key
                 ? {
-                    SCW_ACCESS_KEY: key.accessKey,
-                    SCW_SECRET_KEY: key.secretKey,
+                    SST_SCALEWAY_ACCESS_KEY: key.accessKey,
+                    SST_SCALEWAY_SECRET_KEY: key.secretKey,
+                    SST_SCALEWAY_APPLICATION_ID: key.applicationId,
                   }
-                : {},
-            ) as Output<Record<string, Output<string>>> as never,
+                : {}),
+            })) as Output<Record<string, never>> as never,
           },
           { parent, ignoreChanges: ["name"] },
         ),

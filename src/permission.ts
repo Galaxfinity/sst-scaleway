@@ -22,7 +22,7 @@ export interface Permission extends PermissionArgs {
 }
 
 /**
- * Include Scaleway IAM permissions in a `getSSTLink()` definition — the
+ * Include Scaleway IAM permissions in a `getSSTLink()` definition - the
  * Scaleway analog of `sst.aws.permission()`. Components like `Function`
  * collect these from their `link` array and provision an IAM application,
  * policy, and API key whose credentials are injected as `SCW_*` env vars.

@@ -11,9 +11,24 @@ declare module "sst" {
       "name": string
       "type": "sst-scaleway.index.Bucket"
     }
+    "MyDatabase": {
+      "database": string
+      "endpoint": string
+      "host": string
+      "port": number
+      "type": "sst-scaleway.index.Postgres"
+    }
     "MyFunction": {
       "name": string
       "type": "sst-scaleway.index.Function"
+      "url": string
+    }
+    "MyQueue": {
+      "accessKey": string
+      "endpoint": string
+      "region": string
+      "secretKey": string
+      "type": "sst-scaleway.index.Queue"
       "url": string
     }
   }

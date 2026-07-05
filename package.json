@@ -1,10 +1,10 @@
 {
   "name": "@galaxfinity/sst-scaleway",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publishConfig": {
     "access": "public"
   },
-  "description": "Community SST components for Scaleway — Function, Bucket, Postgres, Queue with linking, bundling, and permissions. Unofficial; not affiliated with Scaleway or SST.",
+  "description": "Community SST components for Scaleway - Function, Bucket, Postgres, Queue with linking, bundling, and permissions. Unofficial; not affiliated with Scaleway or SST.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

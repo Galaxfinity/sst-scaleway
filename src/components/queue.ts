@@ -6,6 +6,7 @@ import * as scwSdk from "@pulumiverse/scaleway";
 import { Component, Transform, transform } from "../internal/component.js";
 import { LinkDefinition } from "../internal/link.js";
 import { physicalName } from "../internal/naming.js";
+import { Function, FunctionArgs } from "./function.js";
 
 export interface QueueArgs {
   /**
@@ -13,6 +14,14 @@ export interface QueueArgs {
    * @default `false`
    */
   fifo?: Input<boolean>;
+  /**
+   * Whether this app should activate MNQ SQS in the project. Activation is
+   * project-level and can only exist once — set this to `false` when SQS is
+   * already activated outside this app (another SST app, Terraform, or the
+   * console). The first `Queue` of a stack decides; later ones share it.
+   * @default `true`
+   */
+  activateSqs?: boolean;
   /**
    * Transform how this component creates its underlying resources.
    */
@@ -29,34 +38,65 @@ export interface QueueArgs {
   };
 }
 
+export type QueueSubscriberArgs = Omit<FunctionArgs, "handler">;
+
+interface SqsInfo {
+  endpoint: Input<string>;
+  region: Input<string>;
+  projectId: Input<string> | undefined;
+  activation?: scwSdk.mnq.Sqs;
+  manage: scwSdk.mnq.SqsCredentials;
+}
+
 // MNQ SQS is activated once per project, and queue management needs its own
 // SQS credentials - both shared across all Queues of the stack.
-let sqsActivation: scwSdk.mnq.Sqs | undefined;
-let manageCredentials: scwSdk.mnq.SqsCredentials | undefined;
-function getSqs() {
-  if (!sqsActivation) {
-    sqsActivation = new scwSdk.mnq.Sqs("SstScalewaySqs", {});
-    manageCredentials = new scwSdk.mnq.SqsCredentials(
-      "SstScalewaySqsManageCredentials",
-      {
-        name: physicalName(64, "sqs-manage"),
-        permissions: { canManage: true },
-      },
-      { dependsOn: [sqsActivation], ignoreChanges: ["name"] },
-    );
-  }
-  return { sqs: sqsActivation, manage: manageCredentials! };
+let sqsInfo: SqsInfo | undefined;
+function getSqs(activate: boolean): SqsInfo {
+  if (sqsInfo) return sqsInfo;
+
+  const activation = activate
+    ? new scwSdk.mnq.Sqs("SstScalewaySqs", {})
+    : undefined;
+  const region =
+    scwSdk.config.region ?? process.env.SCW_DEFAULT_REGION ?? "fr-par";
+  const projectId =
+    scwSdk.config.projectId ?? process.env.SCW_DEFAULT_PROJECT_ID;
+  const manage = new scwSdk.mnq.SqsCredentials(
+    "SstScalewaySqsManageCredentials",
+    {
+      name: physicalName(64, "sqs-manage"),
+      permissions: { canManage: true },
+    },
+    {
+      dependsOn: activation ? [activation] : [],
+      ignoreChanges: ["name"],
+    },
+  );
+  const info: SqsInfo = {
+    endpoint: activation?.endpoint ?? `https://sqs.mnq.${region}.scaleway.com`,
+    region: activation
+      ? activation.region.apply((r) => r ?? region)
+      : region,
+    projectId: activation?.projectId ?? projectId,
+    activation,
+    manage,
+  };
+  sqsInfo = info;
+  return info;
 }
 
 /**
  * The `Queue` component creates a Scaleway MNQ queue (SQS-compatible).
  *
  * MNQ authenticates with its own credentials, not IAM - the link carries a
- * publish+receive credential pair, so any SQS client works at runtime.
+ * publish+receive credential pair, so any SQS client works at runtime. Use
+ * `subscribe()` to consume messages with a function.
  *
  * @example
  * ```ts title="sst.config.ts"
  * const queue = new Queue("MyQueue");
+ *
+ * queue.subscribe("src/consumer.handler");
  *
  * new Function("MyApi", {
  *   handler: "src/index.handler",
@@ -83,15 +123,16 @@ function getSqs() {
  * ```
  */
 export class Queue extends Component {
+  private componentName: string;
   private queue: scwSdk.mnq.SqsQueue;
   private credentials: scwSdk.mnq.SqsCredentials;
-  private sqs: scwSdk.mnq.Sqs;
+  private info: SqsInfo;
 
   constructor(name: string, args: QueueArgs = {}, opts?: ComponentResourceOptions) {
     super("sst-scaleway:index:Queue", name, args, opts);
 
-    const { sqs, manage } = getSqs();
-    this.sqs = sqs;
+    this.componentName = name;
+    this.info = getSqs(args.activateSqs ?? true);
 
     this.queue = new scwSdk.mnq.SqsQueue(
       ...transform(
@@ -104,8 +145,8 @@ export class Queue extends Component {
               : physicalName(64, name),
           ),
           fifoQueue: output(args.fifo).apply((fifo) => fifo ?? false),
-          accessKey: manage.accessKey,
-          secretKey: manage.secretKey,
+          accessKey: this.info.manage.accessKey,
+          secretKey: this.info.manage.secretKey,
         },
         { parent: this, ignoreChanges: ["name"] },
       ),
@@ -119,9 +160,57 @@ export class Queue extends Component {
           name: physicalName(64, `${name}Credentials`),
           permissions: { canPublish: true, canReceive: true },
         },
-        { parent: this, dependsOn: [sqs], ignoreChanges: ["name"] },
+        {
+          parent: this,
+          dependsOn: this.info.activation ? [this.info.activation] : [],
+          ignoreChanges: ["name"],
+        },
       ),
     );
+  }
+
+  /**
+   * Subscribe a function to this queue. Messages are consumed by a
+   * `functions.Trigger` and invoke the function with the message body as the
+   * request body.
+   *
+   * @param subscriber A handler path (`"src/consumer.handler"`) to create a
+   * private function from, or an existing `Function` component.
+   * @param args Function args for the created subscriber (ignored when an
+   * existing `Function` is passed).
+   *
+   * @example
+   * ```ts
+   * queue.subscribe("src/consumer.handler", { link: [bucket] });
+   * ```
+   */
+  public subscribe(
+    subscriber: string | Function,
+    args?: QueueSubscriberArgs,
+  ): Function {
+    const fn =
+      typeof subscriber === "string"
+        ? new Function(
+            `${this.componentName}Subscriber`,
+            { handler: subscriber, url: false, ...args },
+            { parent: this },
+          )
+        : subscriber;
+
+    new scwSdk.functions.Trigger(
+      `${this.componentName}Trigger`,
+      {
+        functionId: fn.nodes.function.id,
+        sqs: {
+          queue: this.queue.name,
+          projectId: this.info.projectId as Input<string>,
+          region: this.info.region,
+        },
+      },
+      { parent: this },
+    );
+
+    return fn;
   }
 
   /**
@@ -129,6 +218,13 @@ export class Queue extends Component {
    */
   public get url() {
     return this.queue.url;
+  }
+
+  /**
+   * The name of the queue.
+   */
+  public get name() {
+    return this.queue.name;
   }
 
   /**
@@ -146,8 +242,8 @@ export class Queue extends Component {
     return {
       properties: {
         url: this.queue.url,
-        endpoint: this.sqs.endpoint,
-        region: this.sqs.region,
+        endpoint: this.info.endpoint,
+        region: this.info.region,
         accessKey: this.credentials.accessKey,
         secretKey: this.credentials.secretKey,
       },

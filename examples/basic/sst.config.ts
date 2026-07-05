@@ -8,7 +8,7 @@ export default $config({
       home: "local",
       providers: {
         scaleway: "1.51.1",
-        "@galaxfinity/sst-scaleway": "0.1.0",
+        "@galaxfinity/sst-scaleway": "0.2.0",
       },
     };
   },
@@ -19,9 +19,20 @@ export default $config({
     const db = new scw.Postgres("MyDatabase");
     const queue = new scw.Queue("MyQueue");
 
+    // Consume queue messages with a private function; it writes each message
+    // into the bucket.
+    queue.subscribe("src/consumer.handler", { link: [bucket] });
+
     const fn = new scw.Function("MyFunction", {
       handler: "src/index.handler",
       link: [bucket, db, queue],
+    });
+
+    // Invoke the function hourly with a marker payload.
+    new scw.Cron("MyCron", {
+      function: fn,
+      schedule: "0 * * * *",
+      event: { source: "cron" },
     });
 
     return {

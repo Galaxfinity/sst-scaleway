@@ -9,6 +9,7 @@ declare module "sst" {
     "MyBucket": {
       "endpoint": string
       "name": string
+      "region": string
       "type": "sst-scaleway.index.Bucket"
     }
     "MyDatabase": {

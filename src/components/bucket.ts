@@ -69,6 +69,13 @@ export class Bucket extends Component {
   }
 
   /**
+   * The region of the bucket.
+   */
+  public get region() {
+    return this.bucket.region;
+  }
+
+  /**
    * The underlying resources this component creates.
    */
   public get nodes() {
@@ -83,6 +90,7 @@ export class Bucket extends Component {
       properties: {
         name: this.name,
         endpoint: this.endpoint,
+        region: this.region,
       },
       include: [
         permission({

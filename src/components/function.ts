@@ -259,19 +259,26 @@ export class Function extends Component {
             {
               applicationId: application.id,
               description: `${$app.name}/${$app.stage} ${name} (sst-scaleway)`,
-              // Org security settings can require an expiration (max 1 year).
-              // Pin it at creation and ignore drift so the key isn't rotated
-              // on every deploy. Rotation before expiry is on the user for
-              // now - recreate via `sst deploy` after tainting, or delete the
-              // key in the console and redeploy.
-              expiresAt: new Date(
-                Date.now() + 364 * 24 * 60 * 60 * 1000,
-              ).toISOString(),
+              // Keys must expire within 1 year (org security settings can
+              // enforce this). Pinning the expiry to fixed half-year
+              // boundaries means the value only changes twice a year — and
+              // since expiresAt forces replacement, that change rotates the
+              // key automatically (new key created before the old one is
+              // deleted). Keys stay valid 6-12 months ahead as long as the
+              // app is deployed at least once per half-year.
+              expiresAt: apiKeyExpiresAt(),
             },
-            { parent, ignoreChanges: ["expiresAt"] },
+            { parent },
           );
         },
       );
+    }
+
+    function apiKeyExpiresAt() {
+      const now = new Date();
+      return now.getUTCMonth() < 6
+        ? `${now.getUTCFullYear()}-12-31T00:00:00Z`
+        : `${now.getUTCFullYear() + 1}-06-30T00:00:00Z`;
     }
 
     function defaultProjectId() {

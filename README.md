@@ -20,7 +20,7 @@ export default $config({
       home: 'local',
       providers: {
         scaleway: '1.51.1',
-        '@galaxfinity/sst-scaleway': '0.1.0',
+        '@galaxfinity/sst-scaleway': '0.2.0',
       },
     };
   },
@@ -84,10 +84,14 @@ No other dependencies needed either way - `@pulumi/pulumi`, `@pulumiverse/scalew
 | `Function` | `functions.Namespace` + `functions.Function` + IAM key wiring | ✅      |
 | `Bucket`   | `object.Bucket`                                               | ✅      |
 | `Postgres` | `databases.ServerlessDatabase` (scale-to-zero PostgreSQL)     | ✅      |
-| `Queue`    | `mnq.Sqs` + `mnq.SqsQueue` + `mnq.SqsCredentials`             | ✅      |
+| `Queue`    | `mnq.Sqs` + `mnq.SqsQueue` + `mnq.SqsCredentials` + `functions.Trigger` | ✅      |
 | `Cron`     | `functions.Cron`                                              | ✅      |
 
 All functions of an app/stage share one Functions namespace by default (override with `namespace`). Every component supports SST-style `transform` and exposes its raw resources via `nodes`.
+
+Consume queue messages with `queue.subscribe("src/consumer.handler")` - it creates a private function plus a `functions.Trigger`, and the message body arrives as the request body. If MNQ SQS is already activated in your project outside this app, pass `activateSqs: false` to `Queue` (activation is project-level and can only exist once).
+
+IAM API keys provisioned for linked permissions expire at fixed half-year boundaries (Jun 30 / Dec 31, always 6-12 months out) and rotate automatically on the first deploy of each half-year - deploy at least once per half-year to never hit an expiry.
 
 ## How it integrates with SST (design notes)
 
@@ -103,9 +107,9 @@ See [`examples/basic`](examples/basic) - a Bucket linked into a Function using t
 
 ## Status
 
-Early, but verified end to end against a real Scaleway account with the published package: `sst add @galaxfinity/sst-scaleway` resolves from the registry and generates the typed `scw` global, and a single live request through a deployed `Function` reads a linked `Bucket` name, queries a linked `Postgres` (IAM-authenticated), and publishes to a linked `Queue`. `Cron` is implemented but not yet exercised in the live example.
+Early, but every component is verified end to end against a real Scaleway account with the published package: `sst add @galaxfinity/sst-scaleway` resolves from the registry and generates the typed `scw` global; a live request through a deployed `Function` reads a linked `Bucket`, queries a linked `Postgres` (IAM-authenticated), and publishes to a linked `Queue`; a `Cron` fires the function on schedule; and a `queue.subscribe()` trigger consumes the messages and writes them to the bucket via S3 with the injected credentials. API key auto-rotation (create-before-delete, zero downtime) has been observed live.
 
-Known limitation: the auto-provisioned IAM API key is created with a ~1-year expiration (some organizations enforce this). Rotation before expiry is currently manual - delete the key in the console and redeploy.
+Known limitation: the `activateSqs: false` escape hatch for projects with pre-existing MNQ SQS activation is implemented but the conflict scenario itself hasn't been reproduced yet.
 
 ## Trademarks & disclaimer
 

@@ -46,6 +46,10 @@ export class Bucket extends Component {
         `${name}Bucket`,
         {
           name: physicalName(63, name).toLowerCase(),
+          // Match SST semantics: `removal: "remove"` means remove — delete
+          // objects with the bucket instead of failing on BucketNotEmpty.
+          // Override via transform for retention.
+          forceDestroy: true,
         },
         // The generated physical name contains a random suffix; ignore it on
         // diff so the bucket isn't replaced on every deploy.

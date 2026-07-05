@@ -1,0 +1,9 @@
+{
+  "name": "sst-scaleway-example-basic",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "sst": "4.17.0",
+    "@galaxfinity/sst-scaleway": "link:../.."
+  }
+}

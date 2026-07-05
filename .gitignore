@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.sst/
+.sst-scaleway/
+*.tsbuildinfo
+.DS_Store
+.env

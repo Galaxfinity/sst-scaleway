@@ -1,0 +1,66 @@
+{
+  "name": "@galaxfinity/sst-scaleway",
+  "version": "0.0.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Community SST components for Scaleway — Function, Bucket, Postgres, Queue with linking, bundling, and permissions. Unofficial; not affiliated with Scaleway or SST.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prepublishOnly": "pnpm run build"
+  },
+  "keywords": [
+    "sst",
+    "scaleway",
+    "serverless",
+    "pulumi",
+    "iac"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Galaxfinity/sst-scaleway.git"
+  },
+  "homepage": "https://github.com/Galaxfinity/sst-scaleway#readme",
+  "bugs": {
+    "url": "https://github.com/Galaxfinity/sst-scaleway/issues"
+  },
+  "license": "MIT",
+  "pulumi": {
+    "name": "scw"
+  },
+  "peerDependencies": {
+    "@pulumi/pulumi": "^3.0.0",
+    "@pulumiverse/scaleway": "^1.51.0"
+  },
+  "peerDependenciesMeta": {
+    "@pulumi/pulumi": {
+      "optional": true
+    },
+    "@pulumiverse/scaleway": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@pulumi/pulumi": "3.215.0",
+    "@pulumiverse/scaleway": "1.51.1",
+    "@types/archiver": "6.0.2",
+    "@types/node": "^22.10.0",
+    "archiver": "6.0.1",
+    "esbuild": "0.21.5",
+    "typescript": "^5.7.2"
+  }
+}
